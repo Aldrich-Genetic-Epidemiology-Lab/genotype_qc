@@ -1,7 +1,7 @@
-#Genotype QC and imputation pipeline
+# Genotype QC and imputation pipeline
 A standardized pipeline for quality control and imputation of array-based genotype data.
 
-##Getting started
+## Getting started
 You should have the following command line tools installed:
 * R (v4.1.0)
 * R data.table (v1.16.2)
