@@ -103,4 +103,235 @@ Ambiguous sex IDs written to hgdp_afr_eur_mega_snps.hg19.nodup.nosex .
 --keep: 266 people remaining.
 Using 1 thread (no multithreaded calculations invoked).
 Before main variant filters, 266 founders and 0 nonfounders present.
-Calculating allele freque
+Calculating allele frequencies... done.
+Total genotyping rate is 0.980979.
+1270557 variants and 266 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to hgdp_afr_eur_mega_snps.hg19.nodup.bed +
+hgdp_afr_eur_mega_snps.hg19.nodup.bim + hgdp_afr_eur_mega_snps.hg19.nodup.fam
+... done.
+```
+
+3. Sometimes, samples are genotyped with reference individuals, such as those from HapMap or the CHM13 cell line, for assessing the quality of the assay. These reference individuals should be filtered out prior to continuing QC. In our case, a single CHM13 sample is included in our dataset.
+
+Make file of CHM13 sample using known sample ID:
+```
+library("data.table")
+
+fam_path <- "hgdp_afr_eur_mega_snps.hg19.nodup.fam"
+
+#Open each of these files as a data frame
+fam_file <- fread(fam_path, header = FALSE, sep = " ", quote = "")
+fam_df <- as.data.frame(fam_file)
+chm13 <- fam_df[startsWith(fam_df[,2], "CHM"),]
+chm13 <- data.frame(chm13[,1], chm13[,2])
+
+write.table(chm13, file = "hgdp_afr_eur_mega_snps.hg19.nodup.chm13.remove", quote = FALSE, sep = " ", row.names = FALSE, col.names = FALSE)
+```
+
+The following plink command was next run to filter out the CHM13 individual from the dataset, retaining only HGDP individuals:
+```
+plink \
+--bfile hgdp_afr_eur_mega_snps.hg19.nodup \
+--remove hgdp_afr_eur_mega_snps.hg19.nodup.chm13.remove \
+--make-bed \
+--out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13
+```
+
+4. If available, sex (coded as 1 = male, 2 = female, 0 = unknown) and case-control status (coded as 1 = control, 2 = case, -9/0/non-numeric = missing) can be added to the fifth and sixth columns of the fam file, respectively. In this example, however, we do not have these data. So sex and case-control status are coded as missing.
+
+5. SNP pre-cleaning. Now that we are set with the files required for QC, we are able to begin the filtering phase. Using plink 1.9, the SNPs were pre-cleaned to retain only biallelic SNPs and filter by individual-level and SNP-level call rate. It is recommended to test multiple combinations of different call thresholds (i.e. 0.95 and 0.98) to find the optimal one that retains the highest number of individuals after filtering.
+
+**SNP-level call rate of 0.98 (```--geno 0.02```) and individual-level call rate of 0.98 (```--mind 0.02```)**
+```
+plink \
+> --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13 \
+> --biallelic-only \
+> --geno 0.02 \
+> --mind 0.02 \
+> --make-bed \
+> --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02
+```
+
+Output:
+```
+PLINK v1.90b6.21 64-bit (19 Oct 2020)          www.cog-genomics.org/plink/1.9/
+(C) 2005-2020 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.log.
+Options in effect:
+  --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13
+  --biallelic-only
+  --geno 0.02
+  --make-bed
+  --mind 0.02
+  --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02
+
+64224 MB RAM detected; reserving 32112 MB for main workspace.
+1270557 variants loaded from .bim file.
+265 people (0 males, 0 females, 265 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.nosex
+.
+82 people removed due to missing genotype data (--mind).
+IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.irem
+.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 183 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate in remaining samples is 0.984216.
+78257 variants removed due to missing genotype data (--geno).
+1192300 variants and 183 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.bed
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.bim
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.02.fam
+... done.
+```
+
+**SNP-level call rate of 0.95 (```--geno 0.05```) and individual-level call rate of 0.95 (```--mind 0.05```)**
+```
+plink \
+> --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13 \
+> --biallelic-only \
+> --geno 0.05 \
+> --mind 0.05 \
+> --make-bed \
+> --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05
+```
+
+Output:
+```
+PLINK v1.90b6.21 64-bit (19 Oct 2020)          www.cog-genomics.org/plink/1.9/
+(C) 2005-2020 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.log.
+Options in effect:
+  --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13
+  --biallelic-only
+  --geno 0.05
+  --make-bed
+  --mind 0.05
+  --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05
+
+64224 MB RAM detected; reserving 32112 MB for main workspace.
+1270557 variants loaded from .bim file.
+265 people (0 males, 0 females, 265 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.nosex
+.
+0 people removed due to missing genotype data (--mind).
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 265 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.980941.
+74268 variants removed due to missing genotype data (--geno).
+1196289 variants and 265 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.bed
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.bim
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.fam
+... done.
+```
+
+**SNP-level call rate of 0.98 (```--geno 0.02```) and individual-level call rate of 0.95 (```--mind 0.05```)**
+```
+plink \
+--bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13 \
+--biallelic-only \
+--geno 0.02 \
+--mind 0.05 \
+--make-bed \
+--out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05
+```
+
+Output:
+```
+PLINK v1.90b6.21 64-bit (19 Oct 2020)          www.cog-genomics.org/plink/1.9/
+(C) 2005-2020 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05.log.
+Options in effect:
+  --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13
+  --biallelic-only
+  --geno 0.02
+  --make-bed
+  --mind 0.05
+  --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05
+
+64224 MB RAM detected; reserving 32112 MB for main workspace.
+1270557 variants loaded from .bim file.
+265 people (0 males, 0 females, 265 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05.nosex
+.
+0 people removed due to missing genotype data (--mind).
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 265 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.980941.
+97888 variants removed due to missing genotype data (--geno).
+1172669 variants and 265 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05.bed
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05.bim
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.02_mind.0.05.fam
+... done.
+```
+
+**SNP-level call rate of 0.95 (```--geno 0.05```) and individual-level call rate of 0.98 (```--mind 0.02```)**
+```
+plink \
+> --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13 \
+> --biallelic-only \
+> --geno 0.05 \
+> --mind 0.02 \
+> --make-bed \
+> --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02
+```
+
+Output:
+```
+PLINK v1.90b6.21 64-bit (19 Oct 2020)          www.cog-genomics.org/plink/1.9/
+(C) 2005-2020 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.log.
+Options in effect:
+  --bfile hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13
+  --biallelic-only
+  --geno 0.05
+  --make-bed
+  --mind 0.02
+  --out hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02
+
+64224 MB RAM detected; reserving 32112 MB for main workspace.
+1270557 variants loaded from .bim file.
+265 people (0 males, 0 females, 265 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.nosex
+.
+82 people removed due to missing genotype data (--mind).
+IDs written to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.irem
+.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 183 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate in remaining samples is 0.984216.
+57266 variants removed due to missing genotype data (--geno).
+1213291 variants and 183 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.bed
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.bim
++
+hgdp_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.02.fam
+... done.
+```
