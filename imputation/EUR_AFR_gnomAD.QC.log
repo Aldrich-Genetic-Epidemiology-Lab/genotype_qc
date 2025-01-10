@@ -1,0 +1,15 @@
+PLINK v1.90b6.21 64-bit (19 Oct 2020)
+Options in effect:
+  --bfile imputation/EUR_AFR_gnomAD.QC
+  --freq
+  --out imputation/EUR_AFR_gnomAD.QC
+
+Hostname: tesla
+Working directory: /mnt/16tb/aldrich_rotation/genotype_qc
+Start time: Thu Jan  9 09:05:19 2025
+
+Random number seed: 1736413519
+64224 MB RAM detected; reserving 32112 MB for main workspace.
+Error: Failed to open imputation/EUR_AFR_gnomAD.QC.bed.
+
+End time: Thu Jan  9 09:05:19 2025
