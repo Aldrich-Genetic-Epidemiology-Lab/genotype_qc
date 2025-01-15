@@ -34,7 +34,7 @@ conda activate genotype_qc
 ```
 
 ### Data
-Due to access restrictions for most individual-level genotype datasets, we will be using a multi-ancestry dataset consisting of 1,435 individuals of African and European ancestry that was compiled from participants in the gnomAD and Human Genome Diversity Project (HGDP) datasets. These data can be downloaded from Dropbox [here](https://www.dropbox.com/scl/fo/h32oore8jemwtj09bd88p/ACv4ccrfSn7CGP33evyp-JM?rlkey=ph9y4ze2c2oe4km9011dr05tp&st=3e95yn38&dl=0). The code used to compile these data can be found in the ```sample_dataset``` folder. To simulate an array-based dataset, these sequencing data have been filtered to retain only SNPs directly genotyped on the Illumina MEGA array.
+Due to access restrictions for most individual-level genotype datasets, we will be using a multi-ancestry dataset consisting of 1,435 individuals of African and European ancestry that was compiled from participants in the gnomAD and Human Genome Diversity Project (HGDP) datasets. These data can be downloaded from OneDrive [here](https://vumc365-my.sharepoint.com/:f:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data?csf=1&web=1&e=NWlMzJ). The code used to compile these data can be found in the ```sample_dataset``` folder. To simulate an array-based dataset, these sequencing data have been filtered to retain only SNPs directly genotyped on the Illumina MEGA array.
 
 ### QC overview
 Starting from the raw genotype data, the entire QC workflow can be broken down into three distinct sub-steps:
@@ -383,7 +383,7 @@ chmod 777 flashpca_x86-64
 ```
 A copy is included in the ```pre-imputation``` sub-directory of this repisotory.
 
-***b.*** Before computing PCs, we will need to merge our filtered PLINK bed/bim/fam files with those containing reference individuals from the CEU, YRI, and CHB/JPT 1000 Genomes reference populations (representing European, African, and East Asian ancestries, respectively). A compiled set of PLINK files can be downloaded [here](https://www.dropbox.com/scl/fo/5u4qvzpstvfkvp5n9e2cf/AIsdz6ZzFKJ8TZHFl5OGi-0?rlkey=97ijemdrnbdoumnchuoets2t6&st=ccs8rkeu&dl=0) from Dropbox in the ```ceu_yri_chb_jpt_1000_genomes_hg19``` sub-directory. Documentation detailing how these reference files were generated can be found in the ```reference_individuals_1kg/ceu_yri_chb_jpt_hg19``` sub-directory. In this directory, the ```Genomes1000.pdf``` PDF details how the raw datasets of all 1000 Genomes can be downloaded.
+***b.*** Before computing PCs, we will need to merge our filtered PLINK bed/bim/fam files with those containing reference individuals from the CEU, YRI, and CHB/JPT 1000 Genomes reference populations (representing European, African, and East Asian ancestries, respectively). A compiled set of PLINK files can be downloaded [here](https://vumc365-my.sharepoint.com/:f:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data?csf=1&web=1&e=4oAUYY) from OneDrive in the ```ceu_yri_chb_jpt_1000_genomes_hg19``` sub-directory. Documentation detailing how these reference files were generated can be found in the ```reference_individuals_1kg/ceu_yri_chb_jpt_hg19``` sub-directory. In this directory, the ```Genomes1000.pdf``` PDF details how the raw datasets of all 1000 Genomes can be downloaded.
 
 ***c.*** SNP pre-cleaning should be performed on the target set, which consists of retaining only biallelic, autosomal SNPs that meet specified SNP-level missingness, HWE, MAF, and LD thresholds:
 ```
@@ -1792,14 +1792,14 @@ The following inputs are required to run the LiftoverVcf function:
 - reference sequence (FASTA and corresponding .dict file for target genome build hg38)
 - reject (file path where rejected variant [i.e. those that cannot be lifted over] will be written)
 
-An hg19 FASTA file can be downloaded from the UCSC Genome Browser (and is also available from the linked Dropbox [here](https://www.dropbox.com/scl/fi/mm3tfygv9xedb4ef2nyz1/hg38.fa.gz?rlkey=5gzcklgnft7ccieiqb6ebfocr&st=utulmv8n&dl=0):
+An hg19 FASTA file can be downloaded from the UCSC Genome Browser (and is also available from the linked OneDrive [here](https://vumc365-my.sharepoint.com/:u:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data/hg38.fa.gz?csf=1&web=1&e=13Vz39):
 ```
 wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
 
 gunzip hg38.fa
 ```
 
-An hg19 to hg38 chain file can also be downloaded from the UCSC Genome Browser or, alternatively, [here](https://www.dropbox.com/scl/fi/qj34ps907cxoe7q0y4gad/hg19ToHg38.over.chain.gz?rlkey=toxvoimcocnkz3gjg9oi3gij7&st=d7kqiuen&dl=0).
+An hg19 to hg38 chain file can also be downloaded from the UCSC Genome Browser or, alternatively, [here](https://vumc365-my.sharepoint.com/:u:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data/hg19ToHg38.over.chain.gz?csf=1&web=1&e=0RluO1).
 
 Prior to running the liftover, another Picard function, ```CreateSequenceDictionary```, was used to create the .dict file for the hg38 FASTA:
 ```
@@ -2154,7 +2154,7 @@ plink \
 --out imputation/EUR_AFR_gnomAD.QC
 ```
 
-Next, we can run the ```TOPMED-check-bim.pl``` script. The ```topmed.ref.new.gz``` file is a list of SNPs in the TOPMed r3 imputation panel and can be downloaded [here](https://www.dropbox.com/scl/fi/y25o6nqdyp4vb8f2jimmo/topmed.ref.new.gz?rlkey=mjgrsq0kixg5hljmbtt1xmlzu&st=5vw8biw7&dl=0):
+Next, we can run the ```TOPMED-check-bim.pl``` script. The ```topmed.ref.new.gz``` file is a list of SNPs in the TOPMed r3 imputation panel and can be downloaded [here](https://vumc365-my.sharepoint.com/:u:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data/topmed.ref.new.gz?csf=1&web=1&e=X5sVhD):
 ```
 perl TOPMED-check-bim.pl \
 -b imputation/EUR_AFR_gnomAD.QC.bim \
@@ -2229,7 +2229,7 @@ sbatch \
 done
 ```
 
-For the imputed dataset we provide in Dropbox, the password is xZ0Jg3fSkGcKam.
+For the imputed dataset available for download from OneDrive, the password is xZ0Jg3fSkGcKam.
 
 ## Post-imputation QC
 
@@ -2537,7 +2537,7 @@ EUR     422937261       54919466        50669988        50669988                
 AFR     422937261       54919466        50669988        50669988                    13832493    13831979
 ```
 \
-**11.** Next, we need to filter SNPs with MAF deviating > 0.1 from the 1000 Genomes MAF in the same target population. A detailed description of how reference allele frequencies from the 1000 Genomes dataset were prepared can be found in the ```reference_individuals_1kg/allele_frequencies_hg38``` sub-directory. Pre-compiled allele frequency files for the CEU (European) and ASW (African American) reference populations can be downloaded [here](https://www.dropbox.com/scl/fo/0evgm4r04k51cfjbd1e89/ACBNbNViOky_cwZa2tyEjgs?rlkey=rhn0pu3pve4exc5j7kaqwq44p&st=hki8hk4p&dl=0).
+**11.** Next, we need to filter SNPs with MAF deviating > 0.1 from the 1000 Genomes MAF in the same target population. A detailed description of how reference allele frequencies from the 1000 Genomes dataset were prepared can be found in the ```reference_individuals_1kg/allele_frequencies_hg38``` sub-directory. Pre-compiled allele frequency files for the CEU (European) and ASW (African American) reference populations can be downloaded [here](https://vumc365-my.sharepoint.com/:f:/r/personal/melinda_aldrich_vumc_org/Documents/Aldrich_VUMC/AldrichLab_Shared/genotype_qc_data/ceu_asw_1000_genomes_allele_frequencies?csf=1&web=1&e=LRgAgr).
 
 We will create a new sub-folder in which this QC step will be performed:
 ```
