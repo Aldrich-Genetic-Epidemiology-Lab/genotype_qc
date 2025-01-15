@@ -4,32 +4,43 @@ A standardized pipeline for quality control and imputation of array-based genoty
 ## Getting started
 ### Software
 You should have the following command line tools installed:
-* ```R``` (v4.1.0)
-* ```R data.table``` (v1.16.2)
-* ```R ggplot2``` (v3.5.1)
-* ```R ggpmisc``` (v0.6.0)
+* ```R``` (v4.3.3)
+* ```R data.table``` (v1.15.2)
+* ```R ggplot2``` (v3.4.4)
+* ```R ggpmisc``` (v0.6.1)
+* ```R.utils``` (v2.12.3)
+* ```R optparse``` (v1.7.5)
 * ```PLINK``` (v1.9 and v2.0)
-* ```flashpca``` (v2.0)
-* ```picard``` (v3.3.0)
-* ```bcftools``` (v1.8)
-* ```bgzip``` (v1.11)
-* ```perl``` (v5.32.1)
-* ```gzip``` (v1.5)
+* ```FlashPCA``` (v2.0)
+* ```picard``` (v2.27.5)
+* ```bcftools``` (v1.19)
+* ```perl``` (v5.22.0)
+* ```tabix``` (v1.11)
+* ```gzip``` (v1.13)
 * ```Python``` (v3.7.12)
-* ```Python dask``` (v2022.02.0)
 * ```Python pandas``` (v1.3.5)
 * ```KING``` (v2.2.7)
 
-An Anaconda environment containing all of these tools can be installed using the included ```genotype_qc_env.yml``` file.
+An Anaconda environment containing all of these tools (except for ```FlashPCA2```) can be installed using the included ```genotype_qc_env.yml``` file.
+
+You can install of these dependencies together as a new Anaconda environment using the following command:
+```
+conda env create -f genotype_qc_env.yml
+```
+
+Once the installation has completed, you can activate the environment using the following command:
+```
+conda activate genotype_qc
+```
 
 ### Data
-Due to access restrictions for most individual-level genotype datasets, we will be using a multi-ancestry dataset consisting of 265 individuals of African and European ancestry that was compiled from participants in the Human Genome Diversity Project (HGDP). These data, as well as the code used to compile them, can be found in the ```sample_dataset``` folder. To simulate an array-based dataset, these sequencing data have been filtered to retain only SNPs directly genotyped on the Illumina MEGA array.
+Due to access restrictions for most individual-level genotype datasets, we will be using a multi-ancestry dataset consisting of 1,435 individuals of African and European ancestry that was compiled from participants in the gnomAD and Human Genome Diversity Project (HGDP) datasets. These data can be downloaded from Dropbox [here](https://www.dropbox.com/scl/fo/h32oore8jemwtj09bd88p/ACv4ccrfSn7CGP33evyp-JM?rlkey=ph9y4ze2c2oe4km9011dr05tp&st=3e95yn38&dl=0). The code used to compile these data can be found in the ```sample_dataset``` folder. To simulate an array-based dataset, these sequencing data have been filtered to retain only SNPs directly genotyped on the Illumina MEGA array.
 
 ### QC overview
 Starting from the raw genotype data, the entire QC workflow can be broken down into three distinct sub-steps:
-* Pre-imputation QC
-* Imputation
-* Post-imputation QC
+* [Pre-imputation QC](#pre-imputation-qc)
+* [Imputation](#imputation)
+* [Post-imputation QC](#post-imputation-qc)
 
 An outline of the entire QC workflow is depicted in the following flowchart:
 ![alt text](https://github.com/mjbetti/genotype_qc/blob/main/FigureS1.png?raw=true)
@@ -370,9 +381,9 @@ wget https://github.com/gabraham/flashpca/releases/download/v2.0/flashpca_x86-64
 gunzip flashpca_x86-64.gz
 chmod 777 flashpca_x86-64
 ```
-A copy is included in the ```scripts``` sub-directory of this repisotory.
+A copy is included in the ```pre-imputation``` sub-directory of this repisotory.
 
-***b.*** Before computing PCs, we will need to merge our filtered PLINK bed/bim/fam files with those containing reference individuals from the CEU, YRI, and CHB/JPT 1000 Genomes reference populations (representing European, African, and East Asian ancestries, respectively). A compiled set of PLINK files can be downloaded from Dropbox. A detailed explanation of how they were generated can be found at X.
+***b.*** Before computing PCs, we will need to merge our filtered PLINK bed/bim/fam files with those containing reference individuals from the CEU, YRI, and CHB/JPT 1000 Genomes reference populations (representing European, African, and East Asian ancestries, respectively). A compiled set of PLINK files can be downloaded [here](https://www.dropbox.com/scl/fo/5u4qvzpstvfkvp5n9e2cf/AIsdz6ZzFKJ8TZHFl5OGi-0?rlkey=97ijemdrnbdoumnchuoets2t6&st=ccs8rkeu&dl=0) from Dropbox in the ```ceu_yri_chb_jpt_1000_genomes_hg19``` sub-directory. Documentation detailing how these reference files were generated can be found in the ```reference_individuals_1kg/ceu_yri_chb_jpt_hg19``` sub-directory. In this directory, the ```Genomes1000.pdf``` PDF details how the raw datasets of all 1000 Genomes can be downloaded.
 
 ***c.*** SNP pre-cleaning should be performed on the target set, which consists of retaining only biallelic, autosomal SNPs that meet specified SNP-level missingness, HWE, MAF, and LD thresholds:
 ```
@@ -797,7 +808,7 @@ flashpca_x86-64 --bfile ld_pruned
 
 The PCAs should be output to a file called ```pcs.txt```.
 
-***j.*** Once PCs are computed, we can use the ```rescale_and_filter_pca.R``` script in the ```pca``` directory to assign population identifiers to the target individuals based on specified PC cutoff thresholds.
+***j.*** Once PCs are computed, we can use the ```rescale_and_filter_pca.R``` script in the ```pre-imputation``` directory to assign population identifiers to the target individuals based on specified PC cutoff thresholds.
     
 First, we need to make a file for the ```--persongroupfilepath``` argument using the following R script:
 ```
@@ -927,7 +938,7 @@ Specific details regarding what each of these values means can be found in the c
 
 We can now run the script to first generate a re-filtered subset of European ancestry individuals:
 ```
-Rscript ~/rescale_and_filter_pca.R \
+Rscript rescale_and_filter_pca.R \
 --workingdir=./ \
 --pcaresultspath=pcs.txt \
 --persongroupfilepath=gnomad_person_group_nopop.txt \
@@ -1168,6 +1179,7 @@ gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.a
 ```
 
 So variant filtering using HWE removed an additional 1,588 SNPs from the European ancestry dataset and 2,586 from the African ancestry dataset.
+\
 \
 **7.** Next, the European and African ancestry individuals should each filtered based on minor allele frequency (MAF), with only SNPs having a MAF > 0.01 in each respective ancestry being retained:
 \
@@ -1730,7 +1742,7 @@ gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.e
 gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.afr_hwe.1e-6_maf.0.01_fhet
 ```
 \
-**10.** Finally, before genotype imputation, you also may want to test for batch effects. This is particularly relevant if you have DNA derived from various sample types (i.e. blood vs. saliva vs. mouthwash). We will not test for batch effects here, but sample code for such a scenario can be found in the ```batch_effects``` sub-directory.
+**10.** Finally, before genotype imputation, you also may want to test for batch effects. This is particularly relevant if you have DNA derived from various sample types (i.e. blood vs. saliva vs. mouthwash). We will not test for batch effects here, but sample code for such a scenario can be found in the ```pre-imputation/batch_effects``` sub-directory.
 
 ## Imputation
 The pre-imputed, ancestry-stratified datasets on which we performed QC should be stored at the following paths:
@@ -1745,7 +1757,7 @@ gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.e
 gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05.afr_hwe.1e-6_maf.0.01_fhet
 ```
 \
-**1.** These variants should be converted to VCF format before being lifted over using the liftoverVCF function from Picard/GATK:
+**1.** These variants should be converted to VCF format before being lifted over using the liftoverVCF function from ```picard```. First, we recode the genotype data to VCF format:
 ```
 mkdir imputation
 
@@ -1780,12 +1792,14 @@ The following inputs are required to run the LiftoverVcf function:
 - reference sequence (FASTA and corresponding .dict file for target genome build hg38)
 - reject (file path where rejected variant [i.e. those that cannot be lifted over] will be written)
 
-An hg19 FASTA file can be downloaded from the UCSC Genome Browser (and is also available from the linked Dropbox here):
+An hg19 FASTA file can be downloaded from the UCSC Genome Browser (and is also available from the linked Dropbox [here](https://www.dropbox.com/scl/fi/mm3tfygv9xedb4ef2nyz1/hg38.fa.gz?rlkey=5gzcklgnft7ccieiqb6ebfocr&st=utulmv8n&dl=0):
 ```
 wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
 
 gunzip hg38.fa
 ```
+
+An hg19 to hg38 chain file can also be downloaded from the UCSC Genome Browser or, alternatively, [here](https://www.dropbox.com/scl/fi/qj34ps907cxoe7q0y4gad/hg19ToHg38.over.chain.gz?rlkey=toxvoimcocnkz3gjg9oi3gij7&st=d7kqiuen&dl=0).
 
 Prior to running the liftover, another Picard function, ```CreateSequenceDictionary```, was used to create the .dict file for the hg38 FASTA:
 ```
@@ -2140,7 +2154,7 @@ plink \
 --out imputation/EUR_AFR_gnomAD.QC
 ```
 
-Next, we can run the ```TOPMED-check-bim.pl``` script. The ```topmed.ref.new.gz``` file is a list of SNPs in the TOPMed imputation panel and can be downloaded here:
+Next, we can run the ```TOPMED-check-bim.pl``` script. The ```topmed.ref.new.gz``` file is a list of SNPs in the TOPMed r3 imputation panel and can be downloaded [here](https://www.dropbox.com/scl/fi/y25o6nqdyp4vb8f2jimmo/topmed.ref.new.gz?rlkey=mjgrsq0kixg5hljmbtt1xmlzu&st=5vw8biw7&dl=0):
 ```
 perl TOPMED-check-bim.pl \
 -b imputation/EUR_AFR_gnomAD.QC.bim \
@@ -2198,18 +2212,54 @@ unzip chr_$chr\.zip
 done
 ```
 
+**11.** We will convert the VCF files to plink bed/bim/fam format:
+```
+for i in {1..22}; do
+sbatch \
+--job-name=chr$i \
+--nodes=1 \
+--ntasks=1 \
+--cpus-per-task=1 \
+--mem=60G \
+--time=2-00:00:00 \
+--wrap="plink2 \
+    --vcf imputation/imputed/chr$i\.dose.vcf.gz \
+    --make-bed \
+    --out imputation/imputed/chr$i\.dose"
+done
+```
+
+For the imputed dataset we provide in Dropbox, the password is xZ0Jg3fSkGcKam.
+
 ## Post-imputation QC
 
-The first post-imputation QC step is to filter out variants with an INFO score < 0.4. The INFO score can range from 0-1 and represents the confidence in each imputed SNP. In this tutorial, we only have a single imputation batch, so we can perform simple filtering based on INFO score.
+One of the first post-imputation QC step is to filter out variants with an imputation R<sup>2</sup> score < 0.4. The R<sup>2</sup> score can range from 0-1 and represents the confidence in each imputed SNP being correctly predicted. In this tutorial, we only have a single imputation batch, so we can perform simple filtering based on R<sup>2</sup> score.
 
-If you are working with multiple batches, however, you should instead each set of INFO scores from each of the batches, averaged them for each SNP, and then made a list of SNPs that will be retained based on mean INFO score. An example of such a workflow can be found in the ```post-imputation``` sub-directory.
+If you are working with multiple batches, however, you should instead each set of INFO scores from each of the batches, averaged them for each SNP, and then made a list of SNPs that will be retained based on mean imputation R<sup>2</sup> score. An example of such a workflow can be found in the ```post-imputation``` sub-directory.
 
-**1.** We will make a new directory for post-imputation QC:
+**1.** Working with rsIDs can often be a challenge, as there can be multiple rsIDs for the same SNP, and some SNPs may not have an rsID at all. To avoid these challenges during the post-imputation QC, we will replace rsIDs in the bim files with variant IDs in the format ```chr:pos:ref_allele:alt_allele```. rsIDs can always be added back later on after QC for GWAS or other analyses. We can use the following R script to reformat each bim file:
+```
+library("data.table")
+
+#Declare the directory in which the imputed plink files are saved
+source_dir <- "imputation/imputed"
+
+for (i in seq(1, 22)) {
+    print(paste0("Processing chromosome ", i, "..."))
+    bim_path <- paste(source_dir, paste0("chr", i, ".dose.bim"), sep = "/")
+    bim_file <- fread(bim_path, header = FALSE, sep = "\t", quote = "")
+    bim_df <- as.data.frame(bim_file)
+    bim_df$V2 <- paste(paste0("chr", bim_df$V1), bim_df$V4, bim_df$V6, bim_df$V5, sep = ":")
+    write.table(bim_df, file = bim_path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+}
+```
+\
+**2.** We will make a new directory for post-imputation QC:
 ```
 mkdir imputation/imputed/qc
 ```
 \
-**2.** Next, we will write a shell script to concatenate INFO scores across all chromosomes:
+**3.** Next, we will write a shell script to concatenate imputation INFO column metrics across all chromosomes:
 ```
 nano gnomad_eur_afr_concat.sh
 ```
@@ -2220,11 +2270,13 @@ The following contents will be added to this script:
 zcat imputation/imputed/chr1.info.gz > imputation/imputed/qc/gnomad_eur_afr.info.txt
 
 for i in {2..22}; do
-    zcat imputation/imputed/batch1/chr$i.info.gz | tail -n +2 >> imputation/imputed/qc/gnomad_eur_afr.info.txt
+    zcat imputation/imputed/chr$i.info.gz | tail -n +2 >> imputation/imputed/qc/gnomad_eur_afr.info.txt
 done
 ```
 This script can be run as a SLURM batch submission:
 ```
+chmod 777 gnomad_eur_afr_concat.sh
+
 sbatch \
     --nodes=1 \
     --ntasks=1 \
@@ -2235,24 +2287,40 @@ sbatch \
     --wrap="./gnomad_eur_afr_concat.sh"
 ```
 \
-**3.** Using an ```R``` script, we can open the set of concatenated SNP INFO scores and compile a set of SNPs to keep based on an INFO score threshold > 0.4:
+**4.** Using an ```R``` script, we can open the set of concatenated SNP imputation R<sup>2</sup> scores and compile a set of SNPs to keep based on an R<sup>2</sup> score threshold > 0.4. Just as we did with the bim files, we will replace rsID with variant IDs in the format ```chr:pos:ref_allele:alt_allele```:
 ```
 library("data.table")
 
-path_batch1 <- "imputation/imputed/qc/gnomad_eur_afr.info.txt"
+cat_df <- data.frame()
 
-out_dir <- "imputation/imputed/qc"
+for (i in seq(1, 22)) {
+    print(paste0("Processing chromosome ", i, "..."))
+    path <- paste0("imputation/imputed/chr", i, ".info.gz")
 
-#Open the info files as data frames
-df_batch1 <- read_delim(path_batch1, delim = "\t", col_names = TRUE)
-df_batch1 <- as.data.frame(df_batch1)
-df_batch1 <- df_batch1[,c("SNP", "Rsq")]
-names(df_batch1) <- c("SNP", "INFO")
+    out_dir <- "imputation/imputed/qc"
 
-final_df <- df_batch1[(df_batch1$INFO > 0.4),]
-final_df <- final_df[,1]
+    #Open the info files as data frames
+    df <- fread(path, sep = "\t", header = TRUE, quote = "")
+    df <- as.data.frame(df)
 
-write.table(final_df, file = paste(out_dir, "gnomad_eur_afr_info_cutoff_0.4.extract", sep = "/"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+    info <- strsplit(df$INFO, ";")
+    info <- unlist(lapply(info, `[[`, 5))
+
+    info <- strsplit(info, "=")
+    info <- unlist(lapply(info, `[[`, 2))
+
+    df$varid <- paste(df[,1], df$POS, df$REF, df$ALT, sep = ":")
+    df <- data.frame(df$varid, info)
+    names(df) <- c("SNP", "Rsq")
+
+    final_df <- df[(df$Rsq > 0.4),]
+    final_df <- final_df[,1]
+    final_df <- as.data.frame(final_df)
+
+    cat_df <- rbind(cat_df, final_df)
+}
+
+write.table(cat_df, file = paste(out_dir, "gnomad_eur_afr_r2_cutoff_0.4.extract", sep = "/"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 ```
 \
 **4.** Next, we can extract these SNPs from the imputed data:
@@ -2266,17 +2334,15 @@ sbatch \
 --mem=60G \
 --time=2-00:00:00 \
 --wrap="plink2 \
---vcf imputation/imputed/chr$i\.dose.vcf.gz \
---extract imputation/imputed/qc/gnomad_eur_afr_info_cutoff_0.4.extract \
+--bfile imputation/imputed/chr$i\.dose \
+--extract imputation/imputed/qc/gnomad_eur_afr_r2_cutoff_0.4.extract \
 --make-bed \
---out imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr"
+--out imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4"
 done
 ```
 \
-**5.** After filtering SNPs based on INFO score, we will also remove any multi-allelic SNPs:
+**5.** After filtering SNPs based on imputation R<sup>2</sup> score, we will also remove any multi-allelic SNPs:
 ```
-module load PLINK/1.9b_5.2
-
 for i in {1..22}; do
 sbatch \
 --job-name=chr$i \
@@ -2286,16 +2352,16 @@ sbatch \
 --mem=60G \
 --time=1-00:00:00 \
 --wrap="plink \
---bfile imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr \
+--bfile imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4 \
 --snps-only \
 --make-bed \
---out imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr_biallelic"
+--out imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4_biallelic"
 done
 ```
 
-The resulting plink bed/bim/fam files should be saved to the following path:
+The resulting plink bed/bim/fam files should be saved to the following paths:
 ```
-imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr_biallelic
+imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4_biallelic
 ```
 \
 **6.** We imputed all gnomAD individuals together in a single batch, irrespective of genetic ancestry. Now, we will split these individuals back into groups of European and African ancestry based on the PCs we computed during the pre-imputation QC.
@@ -2310,8 +2376,8 @@ mkdir $plink_dir\/afr
 \
 **7.** Next, the keep files that we previously used to split individuals into African and European ancestry groups were reformatted to align with the FID and IID formatting in the imputed data:
 ```
-keep_path_eur <- "pcs.txt.rescaled_pca.resubsetted.EUR.assign.refilter.no.refs.keep.txt"
-keep_path_afr <- "pcs.txt.rescaled_pca.resubsetted.AFR.assign.refilter.no.refs.keep.txt"
+keep_path_eur <- "pcs.txt.rescaled_pca.resubsetted.EUR.assign.50.50.refilter.no.refs.keep.txt"
+keep_path_afr <- "pcs.txt.rescaled_pca.resubsetted.AFR.assign.50.50.refilter.no.refs.keep.txt"
 
 keep_file_eur <- read.table(keep_path_eur, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
 keep_df_eur <- as.data.frame(keep_file_eur)
@@ -2319,8 +2385,8 @@ keep_df_eur <- as.data.frame(keep_file_eur)
 keep_file_afr <- read.table(keep_path_afr, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
 keep_df_afr <- as.data.frame(keep_file_afr)
 
-keep_df_eur[,2] <- paste(keep_df_eur[,1], keep_df_eur[,2], keep_df_eur[,2], sep = "_")
-keep_df_afr[,2] <- paste(keep_df_afr[,1], keep_df_afr[,2], keep_df_afr[,2], sep = "_")
+keep_df_eur[,2] <- paste(keep_df_eur[,1], keep_df_eur[,2], sep = "_")
+keep_df_afr[,2] <- paste(keep_df_afr[,1], keep_df_afr[,2], sep = "_")
 
 write.table(keep_df_eur, file = "imputation/imputed/qc/eur/pcs.txt.rescaled_pca.resubsetted.EUR.assign.refilter.no.refs.keep.txt", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
@@ -2338,10 +2404,10 @@ sbatch \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink2 \
---bfile imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr_biallelic \
+--bfile imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4_biallelic \
 --keep imputation/imputed/qc/eur/pcs.txt.rescaled_pca.resubsetted.EUR.assign.refilter.no.refs.keep.txt \
 --make-bed \
---out imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic"
+--out imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic"
 done
 ```
 ### African ancestry
@@ -2355,10 +2421,10 @@ sbatch \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink2 \
---bfile imputation/imputed/qc/chr$i\.info_0.4_gnomad_eur_afr_biallelic \
+--bfile imputation/imputed/qc/chr$i\.gnomad_eur_afr.r2_0.4_biallelic \
 --keep imputation/imputed/qc/afr/pcs.txt.rescaled_pca.resubsetted.AFR.assign.refilter.no.refs.keep.txt \
 --make-bed \
---out imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic"
+--out imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic"
 done
 ```
 \
@@ -2368,17 +2434,17 @@ done
 ```
 for i in {1..22}; do
 sbatch \
---job-name=afr_chr$i \
+--job-name=eur_chr$i \
 --nodes=1 \
 --ntasks=1 \
 --cpus-per-task=1 \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink \
---bfile imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic \
+--bfile imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic \
 --maf 0.01 \
 --make-bed \
---out imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01"
+--out imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01"
 done
 ```
 
@@ -2393,18 +2459,18 @@ sbatch \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink \
---bfile imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic \
+--bfile imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic \
 --maf 0.01 \
 --make-bed \
---out imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01"
+--out imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01"
 done
 ```
 
 The outputs were saved to the following paths:
 ```
-imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01
+imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01
 
-imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01
+imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01
 ```
 \
 **9.** Next, each set of SNPs should be pruned based on deviation from HWE. As we did in the pre-imputation QC, a HWE p-value threshold of 1 x 10<sup>-8</sup> will be used for the European ancestry individuals, and a threshold of 1 x 10<sup>-6</sup> will be used for African ancestry individuals:
@@ -2414,17 +2480,16 @@ imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01
 for i in {1..22}; do
 sbatch \
 --job-name=eur_chr$i \
---account=aldrich_lab \
 --nodes=1 \
 --ntasks=1 \
 --cpus-per-task=1 \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink \
---bfile imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01 \
+--bfile imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01 \
 --hwe 1e-8 \
 --make-bed \
---out imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-8"
+--out imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8"
 done
 ```
 
@@ -2439,34 +2504,40 @@ sbatch \
 --mem=8G \
 --time=2-00:00:00 \
 --wrap="plink \
---bfile imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01 \
+--bfile imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01 \
 --hwe 1e-6 \
 --make-bed \
---out imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-6"
+--out imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6"
 done
 ```
 
 The outputs were saved to the following paths:
 ```
-imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-8
+imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8
 
-imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-6
+imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6
 ```
 \
-**10.** In the ```post-imputation``` sub-directory, we provide a ```python``` script called ```compute_filtered_snps_post_imputation.py``` that can compute the number of SNPs remaining after each post-imputation filtering step. This script takes in user arguments and can be run from the command line using the following shell script:
+**10.** In the ```post-imputation``` sub-directory, we provide a ```python``` script called ```compute_filtered_snps_post_imputation.py``` that can compute the number of SNPs gained/lost at each step, from imputation up through post-imputation HWE filtering. This script takes in user arguments and can be run from the command line using the following shell script:
 ```
-python compute_filtered_snps_post_imputation.py \
--d imputation/imputed/qc #the input file directory
--ii imputation/imputed/qc/gnomad_eur_afr.info.txt #the name of the input post-imputation SNP list with info scores \
--is imputation/imputed/qc/gnomad_eur_afr_info_cutoff_0.4.extract #the name of the input SNP list after filtering by info score \
--gi gnomad_eur_afr #the root name of the input genotype files
--o imputation/imputed/qc/gnomad_post_imputation_qc_stats.txt #the path of the output file
--v #print out logging to the terminal
+python /mnt/16tb/aldrich_rotation/genotype_qc/post-imputation/compute_filtered_snps_post_imputation.py \
+-d imputation/imputed/qc \
+-ip gnomad_afr_eur_mega_snps.hg19.nodup.remove_chm13.biallelic_geno.0.05_mind.0.05 \
+-ii gnomad_eur_afr.info.txt \
+-is gnomad_eur_afr_r2_cutoff_0.4.extract \
+-gi gnomad_eur_afr \
+-o imputation/imputed/qc/gnomad_post_imputation_qc_stats.txt \
+-v
 ```
 
-We should observe the following output:
-
-**11.** Next, we need to filter SNPs with MAF deviating > 0.1 from the 1000 Genomes MAF in the same target population. A detailed description of how reference allele frequencies from the 1000 Genomes dataset were prepared can be found in the ```reference_individuals_1kg/allele_frequencies_hg38``` sub-directory. 
+Our ourput file ```gnomad_post_imputation_qc_stats.txt``` should look like the following:
+```
+pop     post_imputation imputation_r2   biallelic       biallelic_ancestry_split    maf         hwe
+EUR     422937261       54919466        50669988        50669988                    7936468     7936341
+AFR     422937261       54919466        50669988        50669988                    13832493    13831979
+```
+\
+**11.** Next, we need to filter SNPs with MAF deviating > 0.1 from the 1000 Genomes MAF in the same target population. A detailed description of how reference allele frequencies from the 1000 Genomes dataset were prepared can be found in the ```reference_individuals_1kg/allele_frequencies_hg38``` sub-directory. Pre-compiled allele frequency files for the CEU (European) and ASW (African American) reference populations can be downloaded [here](https://www.dropbox.com/scl/fo/0evgm4r04k51cfjbd1e89/ACBNbNViOky_cwZa2tyEjgs?rlkey=rhn0pu3pve4exc5j7kaqwq44p&st=hki8hk4p&dl=0).
 
 We will create a new sub-folder in which this QC step will be performed:
 ```
@@ -2485,7 +2556,7 @@ sbatch \
 --cpus-per-task=1 \
 --mem=16G \
 --time=1-00:00:00 \
---wrap="plink2 --bfile imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-8 --freq --out imputation/imputed/qc/eur/EUR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-8"
+--wrap="plink2 --bfile imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8 --freq --out imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8"
 done
 ```
 
@@ -2499,270 +2570,307 @@ sbatch \
 --cpus-per-task=1 \
 --mem=16G \
 --time=1-00:00:00 \
---wrap="plink2 --bfile imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-6 --freq --out imputation/imputed/qc/afr/AFR_chr$i\.info_0.4_gnomad_eur_afr_biallelic_maf.0.01_hwe.1e-6"
+--wrap="plink2 --bfile imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6 --freq --out imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6"
 done
 ```
 
-We will next write the following script to compute allele frequency difference across all SNPs shared by our gnomAD datasets and European and African ancestry individuals from the 1000 Genomes reference dataset. We will convert any 1000 Genomes allele frequencies greater than 0.5 to the corresponding MAF by calculating (1 - AF):
+We will next write the following script to compute allele frequency difference across all SNPs shared by our gnomAD datasets and European (CEU) and African American (ASW) individuals from the 1000 Genomes reference dataset:
+
+**Comparing allele frequencies in European ancestry individuals with those in CEU**
 ```
 library("data.table")
 
-##EUR
 #Open each of the files as a data frame
 concat_df <- data.frame()
 
 for (i in seq(1, 22)) {
 	print(paste0("Processing chr", i, "..."))
-	file_source <- fread(paste0("/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_chr", i, ".r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.afreq"), header = TRUE, sep = "\t", quote = FALSE)
+	file_source <- fread(paste0("imputation/imputed/qc/eur/EUR_chr", i, ".gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.afreq"), header = TRUE, sep = "\t", quote = FALSE)
 	df_source <- as.data.frame(file_source)
-	names(df_source)[5] <- "MAF_SOURCE"
+	names(df_source)[6] <- "MAF_SOURCE"
 
-	file_reference <- fread(paste0("/home/bettimj/gamazon_rotation/1000_genomes/compile_all_grch38_vcf/plink/pop_anno/ceu/CEU.chr", i, "_GRCh38.genotypes.20170504.afreq"), header = TRUE, sep = "\t", quote = FALSE)
+	file_reference <- fread(paste0("CEU.chr", i, "_GRCh38.genotypes.20170504.afreq"), header = TRUE, sep = "\t", quote = FALSE)
 	df_reference <- as.data.frame(file_reference)
 	names(df_reference)[5] <- "ALT_FREQS_REFERENCE"
 	df_reference$MAF_REFERENCE <- df_reference$ALT_FREQS_REFERENCE
 	df_reference <- df_reference[!is.na(df_reference$MAF_REFERENCE),]
-	df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"] <- (1 - df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"])
+    df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"] <- (1 - df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"])
 
 	#Merge the two together, retaining shared variants
 	merged_df <- merge(df_source, df_reference, by = "ID")
 	merged_df <- merged_df[,c("ID", "MAF_SOURCE", "MAF_REFERENCE")]
 
 	#Calculate difference in allele frequencies between the two samples
-	merged_df$MAF_DIFFERENCE <- abs(merged_df$MAF_SOURCE - 	merged_df$MAF_REFERENCE)
+	merged_df$MAF_DIFFERENCE <- abs(as.numeric(merged_df$MAF_SOURCE) - 	as.numeric(merged_df$MAF_REFERENCE))
 
 	#Concatenate with genome-wide data frame
 	concat_df <- rbind(concat_df, merged_df)
 }
 
 #Write out to a .txt file
-write.table(concat_df, file = "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+write.table(concat_df, file = "imputation/imputed/qc/freq/EUR_ALL_freq_differences.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+```
 
-##AFR
+**Comparing allele frequencies in African ancestry individuals with those in ASW**
+```
+library("data.table")
+
 #Open each of the files as a data frame
 concat_df <- data.frame()
 
 for (i in seq(1, 22)) {
 	print(paste0("Processing chr", i, "..."))
-	file_source <- fread(paste0("/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/AFR_chr", i, ".r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.afreq"), header = TRUE, sep = "\t", quote = FALSE)
+	file_source <- fread(paste0("imputation/imputed/qc/afr/AFR_chr", i, ".gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.afreq"), header = TRUE, sep = "\t", quote = FALSE)
 	df_source <- as.data.frame(file_source)
-	names(df_source)[5] <- "MAF_SOURCE"
+	names(df_source)[6] <- "MAF_SOURCE"
 
-	file_reference <- fread(paste0("/home/bettimj/gamazon_rotation/1000_genomes/compile_all_grch38_vcf/plink/pop_anno/asw/ASW.chr", i, "_GRCh38.genotypes.20170504.afreq"), header = TRUE, sep = "\t", quote = FALSE)
+	file_reference <- fread(paste0("ASW.chr", i, "_GRCh38.genotypes.20170504.afreq"), header = TRUE, sep = "\t", quote = FALSE)
 	df_reference <- as.data.frame(file_reference)
 	names(df_reference)[5] <- "ALT_FREQS_REFERENCE"
 	df_reference$MAF_REFERENCE <- df_reference$ALT_FREQS_REFERENCE
 	df_reference <- df_reference[!is.na(df_reference$MAF_REFERENCE),]
-	df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"] <- (1 - df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"])
+    df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"] <- (1 - df_reference[df_reference$MAF_REFERENCE > 0.5,"MAF_REFERENCE"])
 
 	#Merge the two together, retaining shared variants
 	merged_df <- merge(df_source, df_reference, by = "ID")
 	merged_df <- merged_df[,c("ID", "MAF_SOURCE", "MAF_REFERENCE")]
 
 	#Calculate difference in allele frequencies between the two samples
-	merged_df$MAF_DIFFERENCE <- abs(merged_df$MAF_SOURCE - 	merged_df$MAF_REFERENCE)
+	merged_df$MAF_DIFFERENCE <- abs(as.numeric(merged_df$MAF_SOURCE) - 	as.numeric(merged_df$MAF_REFERENCE))
 
 	#Concatenate with genome-wide data frame
 	concat_df <- rbind(concat_df, merged_df)
 }
 
 #Write out to a .txt file
-write.table(concat_df, file = "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/AFR_ALL_freq_differences.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+write.table(concat_df, file = "imputation/imputed/qc/freq/AFR_ALL_freq_differences.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 ```
 
-Next, the following script was written to output files of those variants whose frequencies deviate by more than 0.1 and 0.2, as well as a plot of the concordance between datasets:
+Next, we can use the script ```maf_concordance_with_1000_genomes.R``` in the ```post-imputation``` sub-directory following script was written to output files of those variants whose frequencies deviate by more than 0.1 and 0.2, as well as a plot of the concordance between datasets.
 
+This script can be run separately for both the European and African ancestry samples:
 
+**European ancestry**
 ```
-library("optparse")
-library("data.table")
-library("ggplot2")
-library("ggpmisc")
-
-option_list = list(
-	make_option(c("-s", "--path_source"), type = "character", default = NULL, help = "path of concated genotype frequency file", metavar = "character"),
-	make_option(c("-o", "--output_prefix"), type = "character", default = NULL, help = "path of the output files and their prefix file name for all output files")
-)
-
-opt_parser <- OptionParser(option_list=option_list)
-opt <- parse_args(opt_parser)
-
-#Open each of the files as a data frame
-file_source <- fread(opt$path_source, header = TRUE, sep = "\t", quote = FALSE)
-df_source <- as.data.frame(file_source)
-
-#Plot the conccordance between the two sets of allele frequencies
-pdf(paste0(opt$output_prefix, ".pdf"))
-ggplot(df_source, aes(MAF_REFERENCE, MAF_SOURCE)) +
-	geom_point(color='black') +
-	geom_smooth(method='lm', formula = y ~ x) +
-	stat_poly_eq(formula = y ~ x)
-dev.off()
-
-#Find variants with high differences in allele frequency
-diff_0.1 <- df_source[(df_source$MAF_DIFFERENCE > 0.1),]
-diff_0.2 <- df_source[(df_source$MAF_DIFFERENCE > 0.2),]
-
-#Write these out to .txt files
-write.table(diff_0.1, file = paste0(opt$output_prefix, "_diff0.1.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
-
-write.table(diff_0.2, file = paste0(opt$output_prefix, "_diff0.2.txt"), quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+Rscript maf_concordance_with_1000_genomes.R \
+-s imputation/imputed/qc/freq/EUR_ALL_freq_differences.txt \
+-o imputation/imputed/qc/freq/EUR_ALL_freq_differences
 ```
 
-This script was run for both the AFR and EUR samples:
+**African ancestry**
 ```
-#AFR
-Rscript /home/bettimj/aldrich_rotation/sccs_aalc_inhale_joint_qc/freq/maf_concordance_with_1000_genomes.R \
--s /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/AFR_ALL_freq_differences.txt \
--o /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/AFR_ALL_freq_differences
+Rscript maf_concordance_with_1000_genomes.R \
+-s imputation/imputed/qc/freq/AFR_ALL_freq_differences.txt \
+-o imputation/imputed/qc/freq/AFR_ALL_freq_differences
+```
+\
+We can count the numbers of variants with MAFs that differ by greater than 0.1 and 0.2, respectively:
+**European ancestry**
+```
+wc -l imputation/imputed/qc/freq/EUR_ALL_freq_differences*
 
-#EUR
-Rscript /home/bettimj/aldrich_rotation/sccs_aalc_inhale_joint_qc/freq/maf_concordance_with_1000_genomes.R \
--s /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences.txt \
--o /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences
-```
-
-The following were the counts of variants:
-```
-wc -l *.txt
-     93984 AFR_ALL_freq_differences_diff0.1.txt
-      3357 AFR_ALL_freq_differences_diff0.2.txt
-  13732969 AFR_ALL_freq_differences.txt
-     16483 EUR_ALL_freq_differences_diff0.1.txt
-      2387 EUR_ALL_freq_differences_diff0.2.txt
-   7979385 EUR_ALL_freq_differences.txt
-  21828565 total
+45731 imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.1.txt
+968 imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.2.txt
 ```
 
-...and the following were the two plots:
-AFR
-
-EUR
-
-Relatedness testing prior to GWAS
-
-Each of the AFR and EUR datasets was first concatenated together (all chromosomes combined):
+**African ancestry**
 ```
-#AFR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr
+wc -l imputation/imputed/qc/freq/AFR_ALL_freq_differences*
 
-nano afr_allfiles.txt
+434927 imputation/imputed/qc/freq/AFR_ALL_freq_differences_diff0.1.txt
+3855 imputation/imputed/qc/freq/AFR_ALL_freq_differences_diff0.2.txt
+```
 
-AFR_chr1.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr2.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr3.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr4.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr5.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr6.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr7.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr8.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr9.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr10.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr11.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr12.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr13.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr14.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr15.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr16.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr17.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr18.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr19.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr20.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr21.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-AFR_chr22.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
+...and we should observe the following plots depicting MAF correlations for European and African ancestry individuals, respectively:
 
-#EUR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur
+**European ancestry**
+![alt text](https://github.com/mjbetti/genotype_qc/blob/main/EUR_ALL_freq_differences.png?raw=true)
+
+**African ancestry**
+![alt text](https://github.com/mjbetti/genotype_qc/blob/main/AFR_ALL_freq_differences.png?raw=true)
+
+Finally, we will prune out variants with a MAF deviating > 0.2 from that in the 1000 Genomes reference dataset:
+**European ancestry**
+```
+for i in {1..22}; do
+sbatch \
+--job-name=EUR_chr$i \
+--nodes=1 \
+--ntasks=1 \
+--cpus-per-task=1 \
+--mem=16G \
+--time=1-00:00:00 \
+--wrap="plink2 \
+--bfile imputation/imputed/qc/eur/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8 \
+--exclude imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.2.txt \
+--make-bed \
+--out imputation/imputed/qc/freq/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2"
+done
+```
+
+**African ancestry**
+```
+for i in {1..22}; do
+sbatch \
+--job-name=AFR_chr$i \
+--nodes=1 \
+--ntasks=1 \
+--cpus-per-task=1 \
+--mem=16G \
+--time=1-00:00:00 \
+--wrap="plink2 \
+--bfile imputation/imputed/qc/afr/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6 \
+--exclude imputation/imputed/qc/freq/AFR_ALL_freq_differences_diff0.2.txt \
+--make-bed \
+--out imputation/imputed/qc/freq/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2"
+done
+```
+
+The resulting filtered sets of files should be saved at the following paths:
+```
+imputation/imputed/qc/freq/EUR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+
+imputation/imputed/qc/freq/AFR_chr$i\.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+```
+\
+**12.** In the final post-imputation QC step, we will identify related individuals using ```king``` and prune them from the dataset.
+
+***a.*** Each of the European and African ancestry datasets should first be concatenated together (all chromosomes combined):
+
+**European ancestry**
+
+We will change directories and create a new file called ```eur_allfiles.txt```, which will contain the names of all files we wish to concatenate:
+```
+cd imputation/imputed/qc/freq
 
 nano eur_allfiles.txt
-
-EUR_chr1.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr2.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr3.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr4.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr5.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr6.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr7.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr8.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr9.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr10.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr11.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr12.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr13.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr14.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr15.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr16.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr17.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr18.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr19.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr20.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr21.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-EUR_chr22.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
 ```
 
+We will add the following lines to this file and save it:
 ```
-module load PLINK/1.9b_5.2
-
-#AFR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr
-
-plink --merge-list afr_allfiles.txt --make-bed --out AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6
-
-#EUR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur
-
-plink --merge-list eur_allfiles.txt --make-bed --out EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8
-```
-
-Reformatted the fam files of each set of merged files:
-```
-afr_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.fam"
-eur_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.fam"
-
-#AFR
-afr_file <- read.table(afr_path, header = FALSE, sep = " ", stringsAsFactors = FALSE)
-afr_df <- as.data.frame(afr_file)
-afr_ids <- strsplit(afr_df[,2], "_")
-afr_ids <- unlist(lapply(afr_ids, `[[`, 3))
-afr_df[,c(1:2)] <- afr_ids
-
-write.table(afr_df, file = afr_path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
-
-#EUR
-eur_file <- read.table(eur_path, header = FALSE, sep = " ", stringsAsFactors = FALSE)
-eur_df <- as.data.frame(eur_file)
-eur_ids <- strsplit(eur_df[,2], "_")
-eur_ids <- unlist(lapply(eur_ids, `[[`, 3))
-eur_df[,c(1:2)] <- eur_ids
-
-write.table(eur_df, file = eur_path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+EUR_chr1.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr2.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr3.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr4.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr5.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr6.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr7.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr8.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr9.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr10.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr11.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr12.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr13.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr14.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr15.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr16.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr17.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr18.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr19.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr20.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr21.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
+EUR_chr22.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
 ```
 
-...and then ran KING:
+Next, we will use ```plink``` to merge all of of these individual files into a single set of plink files:
 ```
-mkdir /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king
-
-mkdir afr eur
+plink --merge-list eur_allfiles.txt --make-bed --out EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2
 ```
 
-AFR
+Lastly, we will use the following ```R``` script to reformat the fam file so that the FID and IID in the first two columns are correctly formatted:
 ```
-#AFR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr
+path <- "EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2.fam"
+
+file <- read.table(path, header = FALSE, sep = " ", stringsAsFactors = FALSE)
+df <- as.data.frame(file)
+ids <- strsplit(df[,2], "0_")
+ids <- unlist(lapply(ids, `[[`, 2))
+df[,c(1:2)] <- ids
+
+write.table(df, file = path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+```
+
+**African ancestry**
+
+We will change directories and create a new file called ```afr_allfiles.txt```, which will contain the names of all files we wish to concatenate:
+```
+cd imputation/imputed/qc/freq
+
+nano afr_allfiles.txt
+```
+
+We will add the following lines to this file and save it:
+```
+AFR_chr1.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr2.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr3.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr4.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr5.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr6.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr7.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr8.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr9.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr10.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr11.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr12.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr13.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr14.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr15.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr16.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr17.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr18.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr19.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr20.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr21.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+AFR_chr22.gnomad_eur_afr.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+```
+
+Next, we will use ```plink``` to merge all of of these individual files into a single set of plink files:
+```
+plink --merge-list afr_allfiles.txt --make-bed --out AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2
+```
+
+Lastly, we will use the following ```R``` script to reformat the fam file so that the FID and IID in the first two columns are correctly formatted:
+```
+path <- "AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2.fam"
+
+file <- read.table(path, header = FALSE, sep = " ", stringsAsFactors = FALSE)
+df <- as.data.frame(file)
+ids <- strsplit(df[,2], "0_")
+ids <- unlist(lapply(ids, `[[`, 2))
+df[,c(1:2)] <- ids
+
+write.table(df, file = path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+```
+
+***b.*** Now, we can run relatedness testing using ```king```. After relatedness estimation has been run, we can prune out one of the two related individuals from each pair.
+
+We will make new sub-directories in which these analyses will be run:
+```
+mkdir imputation/imputed/qc/king
+
+mkdir imputation/imputed/qc/king/eur
+mkdir imputation/imputed/qc/king/afr
+```
+
+We will run relatedness estimation separately among European and African ancestry individuals, identifying pairs of individuals that are third-degree relatives or closer:
+
+**European ancestry**
+```
+cd imputation/imputed/qc/king/eur
 
 king \
--b /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.bed \
+-b imputation/imputed/qc/freq/EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2.bed \
 --related \
 --degree 3 \
 --cpus 64
 ```
 
-Wrote the following script to compile the kinship results with IBS-determined relationships:
+Once this completes, we can use the following ```R``` script to compile the kinship results with IBS-determined relationships:
 ```
 library("data.table")
 
-kinship_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/king.kin0"
+kinship_path <- "imputation/imputed/qc/king/eur/king.kin0"
 
 kinship_file <- fread(kinship_path, header = TRUE, sep = "\t", quote = "")
 kinship_df <- as.data.frame(kinship_file)
@@ -2785,26 +2893,27 @@ kinship_df <- kinship_df[order(kinship_df$Kinship),]
 #ibs_df[((ibs_df$N_IBS0 / ibs_df$N_SNP) > 0.38 & (ibs_df$N_IBS0 / ibs_df$N_SNP) < 0.6),ncol(ibs_df)] <- "half_sibs"
 #ibs_df[((ibs_df$N_IBS1 / ibs_df$N_SNP) < 0.1 & (ibs_df$N_IBS0 / ibs_df$N_SNP) < 0.1),ncol(ibs_df)] <- "duplicates"
 
-write.table(kinship_df, file = "afr_biovu_king_related_3_degree.sorted.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+write.table(kinship_df, file = "imputation/imputed/qc/king/eur/eur_gnomad_king_related_3_degree.sorted.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 ```
 
-Print out the individual missingness of each individual in the dataset:
+Next, we will prune out one individual from each related pair, depending on which person has a lower individual-level missingness. We will use ```plink``` to print out the individual missingness of each individual in the dataset:
 ```
-module load PLINK/1.9b_5.2
+cd imputation/imputed/qc/king/eur
+
 plink \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6 \
+--bfile imputation/imputed/qc/freq/EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2 \
 --missing
 ```
 
-Next, based on the number of missingness, the a list was compiled of the duplicate individuals to be removed. Of each of the duplicate individuals, the one with a lower SNP missing rate was retained:
+Next, based on the level of missingness, the following ```R``` script will be used to compile a list of the related individuals to be removed. For each of the related pairs, the individual with the lower SNP missing rate will be retained:
 ```
 library("data.table")
 
-miss_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/plink.imiss"
+miss_path <- "imputation/imputed/qc/king/eur/plink.imiss"
 miss_file <- fread(miss_path, header = TRUE, sep = " ", quote = "")
 miss_df <- as.data.frame(miss_file)
 
-rel_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/afr_biovu_king_related_3_degree.sorted.txt"
+rel_path <- "imputation/imputed/qc/king/eur/eur_gnomad_king_related_3_degree.sorted.txt"
 rel_file <- fread(rel_path, header = TRUE, sep = "\t", quote = "")
 rel_df <- as.data.frame(rel_file)
 
@@ -2828,66 +2937,47 @@ for (row in seq(1, nrow(rel_df))) {
     to_remove <- c(to_remove, missing_ind)
 }
 
-to_remove <- data.frame(0, unlist(to_remove))
+to_remove <- data.frame(unlist(to_remove), unlist(to_remove))
 to_remove <- unique(to_remove)
 
 #Write to remove list
-write.table(to_remove, file = "AFR_biovu.remove", quote = FALSE, sep = " ", row.names = FALSE, col.names = FALSE)
+write.table(to_remove, file = "imputation/imputed/qc/king/eur/EUR_gnomad.remove", quote = FALSE, sep = " ", row.names = FALSE, col.names = FALSE)
 ```
 
-Remove the related individuals using the related list:
+We can now remove the related individuals using this list we have just made:
 ```
 plink2 \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6 \
---remove /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/AFR_biovu.remove \
+--bfile imputation/imputed/qc/freq/EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2 \
+--remove imputation/imputed/qc/king/eur/EUR_gnomad.remove \
 --make-bed \
---out /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.unrelated
+--out imputation/imputed/qc/king/eur/EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2.unrelated
 ```
 
-So a total of 787 individuals were removed.
+So a total of 71 individuals should be removed.
 
-Excluded SNPs with MAF deviating from 1000 Genomes ASW by more than 0.2 using plink:
+The final set of plink files that pass QC should be saved at the following path:
 ```
-library("data.table")
-
-file <- fread("/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/AFR_ALL_freq_differences_diff0.2.txt", sep = "\t", header = TRUE, quote = "")
-
-df <- as.data.frame(file)
-df <- df[,1]
-
-write.table(df, file = "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_ALL_freq_differences_diff0.2.exclude", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+imputation/imputed/qc/king/eur/EUR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-8.exclude_maf0.2.unrelated
 ```
 
-```
-plink2 \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.unrelated \
---exclude /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/afr/AFR_ALL_freq_differences_diff0.2.exclude \
---make-bed \
---out /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.unrelated.remove_maf0.2_deviation
-```
+These files should now be ready to use for genetic association studies, including GWAS.
 
-The resulting files were saved at the following path:
+**African ancestry**
 ```
-/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/afr/AFR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-6.unrelated.remove_maf0.2_deviation
-```
-
-EUR
-```
-#EUR
-cd /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur
+cd imputation/imputed/qc/king/afr
 
 king \
--b /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.bed \
---relatedness \
+-b imputation/imputed/qc/freq/AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2.bed \
+--related \
 --degree 3 \
 --cpus 64
 ```
 
-Wrote the following script to compile the kinship results with IBS-determined relationships:
+Once this completes, we can use the following ```R``` script to compile the kinship results with IBS-determined relationships:
 ```
 library("data.table")
 
-kinship_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/king.kin0"
+kinship_path <- "imputation/imputed/qc/king/afr/king.kin0"
 
 kinship_file <- fread(kinship_path, header = TRUE, sep = "\t", quote = "")
 kinship_df <- as.data.frame(kinship_file)
@@ -2910,26 +3000,27 @@ kinship_df <- kinship_df[order(kinship_df$Kinship),]
 #ibs_df[((ibs_df$N_IBS0 / ibs_df$N_SNP) > 0.38 & (ibs_df$N_IBS0 / ibs_df$N_SNP) < 0.6),ncol(ibs_df)] <- "half_sibs"
 #ibs_df[((ibs_df$N_IBS1 / ibs_df$N_SNP) < 0.1 & (ibs_df$N_IBS0 / ibs_df$N_SNP) < 0.1),ncol(ibs_df)] <- "duplicates"
 
-write.table(kinship_df, file = "eur_biovu_king_related_3_degree.sorted.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+write.table(kinship_df, file = "imputation/imputed/qc/king/afr/afr_gnomad_king_related_3_degree.sorted.txt", quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 ```
 
-Print out the individual missingness of each individual in the dataset:
+Next, we will prune out one individual from each related pair, depending on which person has a lower individual-level missingness. We will use ```plink``` to print out the individual missingness of each individual in the dataset:
 ```
-module load PLINK/1.9b_5.2
+cd imputation/imputed/qc/king/afr
+
 plink \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8 \
+--bfile imputation/imputed/qc/freq/AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2 \
 --missing
 ```
 
-Next, based on the number of missingness, the a list was compiled of the duplicate individuals to be removed. Of each of the duplicate individuals, the one with a lower SNP missing rate was retained:
+Next, based on the level of missingness, the following ```R``` script will be used to compile a list of the related individuals to be removed. For each of the related pairs, the individual with the lower SNP missing rate will be retained:
 ```
 library("data.table")
 
-miss_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/plink.imiss"
+miss_path <- "imputation/imputed/qc/king/afr/plink.imiss"
 miss_file <- fread(miss_path, header = TRUE, sep = " ", quote = "")
 miss_df <- as.data.frame(miss_file)
 
-rel_path <- "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/eur_biovu_king_related_3_degree.sorted.txt"
+rel_path <- "imputation/imputed/qc/king/afr/afr_gnomad_king_related_3_degree.sorted.txt"
 rel_file <- fread(rel_path, header = TRUE, sep = "\t", quote = "")
 rel_df <- as.data.frame(rel_file)
 
@@ -2953,45 +3044,27 @@ for (row in seq(1, nrow(rel_df))) {
     to_remove <- c(to_remove, missing_ind)
 }
 
-to_remove <- data.frame(0, unlist(to_remove))
+to_remove <- data.frame(unlist(to_remove), unlist(to_remove))
 to_remove <- unique(to_remove)
 
 #Write to remove list
-write.table(to_remove, file = "EUR_biovu.remove", quote = FALSE, sep = " ", row.names = FALSE, col.names = FALSE)
+write.table(to_remove, file = "imputation/imputed/qc/king/afr/AFR_gnomad.remove", quote = FALSE, sep = " ", row.names = FALSE, col.names = FALSE)
 ```
 
-Remove the related individuals using the related list:
+We can now remove the related individuals using this list we have just made:
 ```
 plink2 \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8 \
---remove /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/EUR_biovu.remove \
+--bfile imputation/imputed/qc/freq/AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2 \
+--remove imputation/imputed/qc/king/afr/AFR_gnomad.remove \
 --make-bed \
---out /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.unrelated
+--out imputation/imputed/qc/king/afr/AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2.unrelated
 ```
 
-So a total of 2,199 individuals were removed.
+So a total of 168 individuals should be removed.
 
-Excluded SNPs with MAF deviating from 1000 Genomes CEU by more than 0.2 using plink:
+The final set of plink files that pass QC should be saved at the following path:
 ```
-library("data.table")
-
-file <- fread("/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.2.txt", sep = "\t", header = TRUE, quote = "")
-
-df <- as.data.frame(file)
-df <- df[,1]
-
-write.table(df, file = "/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.2.exclude", sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+imputation/imputed/qc/king/afr/AFR.gnomad.r2_0.4_biallelic_maf.0.01_hwe.1e-6.exclude_maf0.2.unrelated
 ```
 
-```
-plink2 \
---bfile /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.unrelated \
---exclude /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/freq/EUR_ALL_freq_differences_diff0.2.exclude \
---make-bed \
---out /home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.unrelated.remove_maf0.2_deviation
-```
-
-The resulting files were saved at the following path:
-```
-/home/bettimj/aldrich_rotation/biovu_2023_pull_qc/imputation/imputed/qc/king/eur/EUR_biovu.r2_0.4_merged_batches_biallelic_maf.0.01_hwe.1e-8.unrelated.remove_maf0.2_deviation
-```
+These files should now be ready to use for genetic association studies, including GWAS.

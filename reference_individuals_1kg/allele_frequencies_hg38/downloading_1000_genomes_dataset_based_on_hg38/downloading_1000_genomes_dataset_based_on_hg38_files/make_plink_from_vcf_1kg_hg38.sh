@@ -1,0 +1,12 @@
+sbatch \
+--nodes=1 \
+--ntasks=1 \
+--cpus-per-task=1 \
+--mem-per-cpu=128G \
+--time=1-00:00:00 \
+--job-name=1kg_vcf_to_plink \
+--wrap="plink2 \
+--vcf /home/bettimj/gamazon_rotation/1000_genomes/compile_all_grch38_vcf/ALL.GRCh38.genotypes.20170504.sorted.no.multiallelic.vcf.gz \
+--make-bed \
+--out /home/bettimj/gamazon_rotation/1000_genomes/compile_plink/ALL.GRCh38.genotypes.20170504.sorted.no.multiallelic \
+--vcf-half-call m"
